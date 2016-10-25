@@ -7,9 +7,12 @@ import java.io.InputStreamReader;
 public class Main {
     public static void main(String[] args) {
         Elevator e = new Elevator(0, 10);
+        e.setMaxSpeed(10);
+        e.setMaxAcceleration(10);
+        e.details();
         while (true) {
             String input = input();
-            e.moveToPosition(Integer.parseInt(input));
+            e.moveToPosition(Double.parseDouble(input));
         }
     }
 
