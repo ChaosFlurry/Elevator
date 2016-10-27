@@ -4,6 +4,11 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Creates an Elevator Object.
+ *
+ * TODO finish javadoc
+ */
 public class Elevator {
     private int currentFloor;
     private int minFloor;
@@ -53,6 +58,10 @@ public class Elevator {
         this.maxFloor = maxFloor;
     }
 
+    public void setTime(double time) {this.time = time;}
+
+    public double getTime() {return time;}
+
     public double getPosition() {
         return position;
     }
@@ -94,13 +103,16 @@ public class Elevator {
     }
 
     public void details() {
-        /**
+        /*
+         * TODO all this stuff
          * Travelling to floor
          * ETA
          * Queue?
          * Direction?
          * Status: Travelling to... Returning to... Unused, Out of Order etc
          */
+
+        System.out.println("Time: " + getTime());
         System.out.println("Position: " + getPosition());
         if (getSpeed() > 0) {
             System.out.println("Moving: Yes");
@@ -114,33 +126,32 @@ public class Elevator {
     }
 
     public void update(double rate) {
-        // time taken to reach top speed: 1s
-        /*
-        if total d is less than d/2, accelerate for half the time and slow down for the other half
-         */
-
+        // Recalculate time
         time = BigDecimal.valueOf(time)
                 .add(BigDecimal.valueOf(rate))
                 .doubleValue();
 
-        //position += speed * rate + 0.5 * acceleration * Math.pow(rate, 2);
+        // Recalculate position
+        // position += speed * rate + 0.5 * acceleration * Math.pow(rate, 2);
         position = BigDecimal.valueOf(position)
                 .add(BigDecimal.valueOf(speed)
-                .multiply(BigDecimal.valueOf(rate))
+                    .multiply(BigDecimal.valueOf(rate))
                 .add(BigDecimal.valueOf(0.5)
-                .multiply(BigDecimal.valueOf(acceleration))
-                .multiply(BigDecimal.valueOf(rate).pow(2))))
+                    .multiply(BigDecimal.valueOf(acceleration))
+                    .multiply(BigDecimal.valueOf(rate).pow(2))))
                 .doubleValue();
 
-        //speed += acceleration * rate;
+        // Recalculate speed
+        // speed += acceleration * rate;
         speed = BigDecimal.valueOf(speed)
                 .add(BigDecimal.valueOf(acceleration)
-                .multiply(BigDecimal.valueOf(rate)))
+                    .multiply(BigDecimal.valueOf(rate)))
                 .doubleValue();
 
+        // Set speed to maximum allowed speed if speed exceeds maximum allowed
+        // Account for negative speeds
         if (Math.abs(speed) >= Math.abs(maxSpeed)) {
-            //accounts for negative speeds
-            //speed = (speed / Math.abs(speed)) * maxSpeed;
+            // speed = (speed / Math.abs(speed)) * maxSpeed;
             speed = BigDecimal.valueOf(speed)
                     .divide(BigDecimal.valueOf(speed).abs())
                     .multiply(BigDecimal.valueOf(maxSpeed))
@@ -149,58 +160,119 @@ public class Elevator {
         }
     }
 
-    public void travelToFloor(int floor) {
-
-    }
-
     public void moveToPosition(double finalPosition) {
+        // Store current position as starting point of the elevator
         double initialPosition = this.position;
-        double distance = BigDecimal.valueOf(finalPosition)
+
+        // Calculate distance to be travelled
+        double totalDistance = BigDecimal.valueOf(finalPosition)
                 .subtract(BigDecimal.valueOf(initialPosition))
                 .doubleValue();
 
+        // The time it takes for the elevator to reach max speed
+        // let vi = 0, thus:
+        // vf = a * t
+        // t = vf / a
+        double timeTakenToReachMaximumSpeed = maxSpeed / maxAcceleration;
+
+        // The distance the elevator has travelled when it reaches max speed
+        // let vi = 0, thus:
+        // d = 0.5 * vf * t
+        double distanceTravelledUponReachingMaxSpeed = 0.5 * maxSpeed * timeTakenToReachMaximumSpeed;
+
+        // Reset time
+        setTime(0);
+
+        // Used to calculate loop times (logging purposes only)
         Instant startTime = Instant.now();
         System.out.println("Start: " + startTime);
 
-        if (distance < 0) {
+        // Account for negative distances
+        if (totalDistance < 0) {
             setAcceleration(maxAcceleration * -1);
         } else {
             setAcceleration(maxAcceleration);
         }
+
+        // Indicates if the elevator has already started decelerating as it approaches its destination
+        boolean slowingDown = false;
+
+        // Indicates if elevator needs to slow down before reaching its max speed
+        // (for distances whereby the elevator would not be able to reach its max speed within that time frame)
+        boolean earlyDeceleration = false;
+
+        // Checks if the elevator has to begin slowing down before it reaches its max speed
+        if (Math.abs(totalDistance) < distanceTravelledUponReachingMaxSpeed * 2) {
+            earlyDeceleration = true;
+        }
+
+        System.out.println("time to reach max: " + timeTakenToReachMaximumSpeed);
+        System.out.println("total d: " + totalDistance);
+        System.out.println("distance travelled max speed: " + distanceTravelledUponReachingMaxSpeed);
+        System.out.println("early acc: " + earlyDeceleration);
+
+        // Continually recalculate and display elevator details (time, position, speed, acceleration)
+        double travelledDistance;
+        double remainingDistance;
         while (true) {
-            Instant loopStart = Instant.now();
-            if (Math.abs(this.position - initialPosition) >= Math.abs(distance)) {
-                System.out.println("d: " + (finalPosition - initialPosition));
-                System.out.println("distance: " + distance);
+            travelledDistance = Math.abs(this.position - initialPosition);
+            remainingDistance = Math.abs(totalDistance) - travelledDistance;
+
+            if (remainingDistance <= 0) {
+                // Checks if the elevator has completed travelling the whole distance (accounts for negative positions)
+
+                // Stops the elevator
                 setSpeed(0);
                 setAcceleration(0);
                 System.out.println("Arrived.");
                 details();
                 break;
-            }
+            } else if (earlyDeceleration) {
+                System.out.println("Early deceleration");
+                // Checks if the elevator has to slow down despite not having reached max speed
+                // If the elevator needs to slow down before it reaches it max speed,
+                // set the elevator to start to slow down at the half way point
 
-            try {
-                //Instant sleepStart = Instant.now();
-                Thread.sleep(100);
-                //Instant sleepEnd = Instant.now();
-                //Duration sleepTime = Duration.ofMillis(sleepEnd.toEpochMilli() - sleepStart.toEpochMilli());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                // Checks if the elevator has reached the half way point
+                if (travelledDistance >= Math.abs(totalDistance) / 2 && !slowingDown) {
+                    if (speed > 0) {
+                        setAcceleration(maxAcceleration * -1);
+                    } else {
+                        setAcceleration(maxAcceleration);
+                    }
+                    System.out.println("Slowing down...\n");
+                    slowingDown = true;
+                }
             }
+            else if (Math.abs(remainingDistance) <= distanceTravelledUponReachingMaxSpeed) {
+                // Checks if the elevator has reached the point where it has to
+                // begin to slow down to smoothly reach the destination.
 
+                // Checks if the elevator is already slowing down
+                if (!slowingDown) {
+                    if (speed > 0) {
+                        setAcceleration(maxAcceleration * -1);
+                    } else {
+                        setAcceleration(maxAcceleration);
+                    }
+                    System.out.println("Slowing down...\n");
+                    slowingDown = true;
+                }
+            }
+            // Recalculates elevator details every time interval (s)
             update(0.1);
-            System.out.println("Time: " + time);
+            // Display new elevator details
             details();
-            Instant currentTime = Instant.now();
-            Duration elapsed = Duration.ofMillis(
-                    currentTime.toEpochMilli() - loopStart.toEpochMilli());
-            System.out.println(elapsed);
-
         }
+
+        // Used to calculate loop times (logging purposes only)
         Instant endTime = Instant.now();
         System.out.println("End: " + endTime);
         Duration elapsed = Duration.ofMillis(endTime.toEpochMilli() - startTime.toEpochMilli());
         System.out.println("Elapsed time: " + elapsed);
-        time = 0;
+    }
+
+    public void travelToFloor(int floor) {
+
     }
 }
