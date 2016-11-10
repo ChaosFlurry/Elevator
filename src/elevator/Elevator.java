@@ -1,10 +1,6 @@
 package elevator;
 
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.Period;
-import java.time.temporal.Temporal;
 
 /**
  * Creates an Elevator Object.
@@ -129,9 +125,7 @@ public class Elevator {
     }
 
     public void moveToPosition(double finalPosition) {
-        //TODO export data as csv file and make a graph of the data
-        // TODO fix time and else loop section
-        // TODO use BigDecimal
+        // TODO export data as csv file and make a graph of the data
 
         // Store current position as starting point of the elevator
         double initialPosition = this.position;
@@ -145,12 +139,17 @@ public class Elevator {
         // let vi = 0, thus:
         // vf = a * t
         // t = vf / a
-        double timeTakenToReachMaximumSpeed = maxSpeed / maxAcceleration;
+        double timeTakenToReachMaximumSpeed = BigDecimal.valueOf(maxSpeed)
+                .divide(BigDecimal.valueOf(maxAcceleration))
+                .doubleValue();
 
         // The distance the elevator has travelled when it reaches max speed
         // let vi = 0, thus:
         // d = 0.5 * vf * t
-        double distanceTravelledUponReachingMaxSpeed = 0.5 * maxSpeed * timeTakenToReachMaximumSpeed;
+        double distanceTravelledUponReachingMaxSpeed = BigDecimal.valueOf(maxSpeed)
+                .divide(BigDecimal.valueOf(2))
+                .multiply(BigDecimal.valueOf(timeTakenToReachMaximumSpeed))
+                .doubleValue();
 
         // Reset time
         setTime(0);
@@ -168,51 +167,97 @@ public class Elevator {
         }
         double a = maxAcceleration;
 
-        System.out.println("debug:");
-        System.out.println(Math.abs(totalDistance));
-        System.out.println(distanceTravelledUponReachingMaxSpeed * 2);
+
+        boolean doesNotReachMaxSpeed = false;
+        if (Math.abs(totalDistance) < BigDecimal.valueOf(distanceTravelledUponReachingMaxSpeed)
+                .multiply(BigDecimal.valueOf(2))
+                .doubleValue()) {
+            doesNotReachMaxSpeed = true;
+        }
 
         // If the elevator has to begin slowing down before it reaches its max speed
-        if (Math.abs(totalDistance) < distanceTravelledUponReachingMaxSpeed * 2) {
-            double peakDistance = totalDistance / 2;
-            double peakTime = Math.sqrt(2 * peakDistance / maxAcceleration);
-            double peakSpeed = maxAcceleration * peakTime;
+        if (doesNotReachMaxSpeed) {
+            double peakDistance = BigDecimal.valueOf(totalDistance)
+                    .divide(BigDecimal.valueOf(2))
+                    .doubleValue();
+            double peakTime = Math.sqrt(BigDecimal.valueOf(peakDistance)
+                    .multiply(BigDecimal.valueOf(2))
+                    .divide(BigDecimal.valueOf(maxAcceleration))
+                    .doubleValue());
+            double peakSpeed = BigDecimal.valueOf(maxAcceleration)
+                    .multiply(BigDecimal.valueOf(peakTime))
+                    .doubleValue();
 
             // Speeding up until peak time
             setAcceleration(a);
             while (time < peakTime) {
-                d = 0.5 * acceleration * Math.pow(time, 2);
-                v = acceleration * time;
-                setPosition(initialPosition + d);
+                // d = 0.5 * acceleration * t^2
+                d = BigDecimal.valueOf(0.5)
+                        .multiply(BigDecimal.valueOf(acceleration))
+                        .multiply(BigDecimal.valueOf(time).pow(2))
+                        .doubleValue();
+
+                // v = acceleration * time
+                v = BigDecimal.valueOf(acceleration)
+                        .multiply(BigDecimal.valueOf(time))
+                        .doubleValue();
+
+                setPosition(BigDecimal.valueOf(initialPosition)
+                        .add(BigDecimal.valueOf(d))
+                        .doubleValue());
                 setSpeed(v);
                 details();
-                time += rate;
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
                 setTime(time);
             }
 
             // Display details at peak
             System.out.println("Peak:");
             setTime(peakTime);
-            setPosition(initialPosition + peakDistance);
+            setPosition(BigDecimal.valueOf(initialPosition)
+                    .add(BigDecimal.valueOf(peakDistance))
+                    .doubleValue());
             setSpeed(peakSpeed);
             setAcceleration(0);
             details();
 
+            // reset time
+            setTime(time);
+
             // Slowing down after peak time
             setAcceleration(-a);
             while (time > peakTime) {
-                d = peakSpeed * (time - peakTime) + 0.5 * acceleration * Math.pow((time - peakTime), 2) + peakDistance;
-                v = peakSpeed + acceleration * (time - peakTime);
+                // d = peakSpeed * (time - peakTime) + 0.5 * acceleration * Math.pow((time - peakTime), 2) + peakDistance;
+                d = BigDecimal.valueOf(peakSpeed)
+                        .multiply(BigDecimal.valueOf(time).subtract(BigDecimal.valueOf(peakTime)))
+                        .add(BigDecimal.valueOf(0.5)
+                            .multiply(BigDecimal.valueOf(acceleration))
+                            .multiply((BigDecimal.valueOf(time).subtract(BigDecimal.valueOf(peakTime))).pow(2)))
+                        .add(BigDecimal.valueOf(peakDistance))
+                        .doubleValue();
+
+                // v = peakSpeed + acceleration * (time - peakTime);
+                v = BigDecimal.valueOf(peakSpeed)
+                        .add(BigDecimal.valueOf(acceleration)
+                            .multiply(BigDecimal.valueOf(time).subtract(BigDecimal.valueOf(peakTime))))
+                        .doubleValue();
+
                 setPosition(initialPosition + d);
                 setSpeed(v);
                 details();
-                time += rate;
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
                 setTime(time);
 
                 // Elevator has arrived
-                if (time >= peakTime * 2) {
+                if (time >= BigDecimal.valueOf(peakTime).multiply(BigDecimal.valueOf(2)).doubleValue()) {
                     System.out.println("Arrived.");
-                    setTime(peakTime * 2);
+                    setTime(BigDecimal.valueOf(peakTime)
+                            .multiply(BigDecimal.valueOf(2))
+                            .doubleValue());
                     setPosition(finalPosition);
                     setSpeed(0);
                     setAcceleration(0);
@@ -221,73 +266,149 @@ public class Elevator {
                 }
             }
         } else {
-            System.out.println("loop");
-            System.out.println("max v: " + maxSpeed);
-            System.out.println("max a: " + maxAcceleration);
-            System.out.println("total distance: " + totalDistance);
-            System.out.println("max speed distance: " + distanceTravelledUponReachingMaxSpeed * 2);
-
-            double timeToReachMaxSpeed = maxSpeed / a;
-            double distanceAtMaxSpeed = 0.5 * maxSpeed * timeToReachMaxSpeed;
+            double timeToReachMaxSpeed = BigDecimal.valueOf(maxSpeed)
+                    .divide(BigDecimal.valueOf(a))
+                    .doubleValue();
+            double distanceAtMaxSpeed = BigDecimal.valueOf(0.5)
+                    .multiply(BigDecimal.valueOf(maxSpeed))
+                    .multiply(BigDecimal.valueOf(timeToReachMaxSpeed))
+                    .doubleValue();
 
             // Accelerate to maxSpeed
             setAcceleration(a);
             while (time < timeToReachMaxSpeed) {
-                d = 0.5 * acceleration * Math.pow(time, 2);
-                v = acceleration * time;
-                setPosition(initialPosition + d);
+                // d = 0.5 * acceleration * Math.pow(time, 2);
+                d = BigDecimal.valueOf(0.5)
+                        .multiply(BigDecimal.valueOf(acceleration))
+                        .multiply(BigDecimal.valueOf(time).pow(2))
+                        .doubleValue();
+
+                // v = acceleration * time;
+                v = BigDecimal.valueOf(acceleration)
+                        .multiply(BigDecimal.valueOf(time))
+                        .doubleValue();
+
+                setPosition(BigDecimal.valueOf(initialPosition)
+                        .add(BigDecimal.valueOf(d))
+                        .doubleValue());
                 setSpeed(v);
                 details();
-                time += rate;
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
                 setTime(time);
             }
 
-            System.out.println("Peak:");
             setTime(timeToReachMaxSpeed);
-            setPosition(initialPosition + distanceAtMaxSpeed);
+            setPosition(BigDecimal.valueOf(initialPosition)
+                    .add(BigDecimal.valueOf(distanceAtMaxSpeed))
+                    .doubleValue());
             setSpeed(maxSpeed);
             setAcceleration(0);
+            System.out.println("Peak:");
             details();
 
-            double totalCruiseDistance = totalDistance - 2 * distanceAtMaxSpeed;
-            double cruiseStartPosition = initialPosition + distanceAtMaxSpeed;
-            double cruiseEndPosition = cruiseStartPosition + totalCruiseDistance;
-            double totalCruiseTime = totalCruiseDistance / maxSpeed;
+            double totalCruiseDistance = BigDecimal.valueOf(totalDistance)
+                    .subtract(BigDecimal.valueOf(distanceAtMaxSpeed)
+                        .multiply(BigDecimal.valueOf(2)))
+                    .doubleValue();
+            double cruiseStartPosition = BigDecimal.valueOf(initialPosition)
+                    .add(BigDecimal.valueOf(distanceAtMaxSpeed))
+                    .doubleValue();
+            double cruiseEndPosition = BigDecimal.valueOf(cruiseStartPosition)
+                    .add(BigDecimal.valueOf(totalCruiseDistance))
+                    .doubleValue();
+            double totalCruiseTime = BigDecimal.valueOf(totalCruiseDistance)
+                    .divide(BigDecimal.valueOf(maxSpeed))
+                    .doubleValue();
             double cruiseStartTime = timeToReachMaxSpeed;
-            double cruiseEndTime = cruiseStartTime + totalCruiseDistance / maxSpeed;
+            double cruiseEndTime = BigDecimal.valueOf(cruiseStartTime)
+                    .add(BigDecimal.valueOf(totalCruiseDistance)
+                        .divide(BigDecimal.valueOf(maxSpeed)))
+                    .doubleValue();
+
+            // reset time
+            if (time == getTime()) {
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
+            }
+            setTime(time);
 
             // Cruise at max speed
-            setTime(time);
             while (time < cruiseEndTime) {
-                d = maxSpeed * (time - cruiseStartTime);
-                setPosition(cruiseStartPosition + d);
+                // d = maxSpeed * (time - cruiseStartTime)
+                d = BigDecimal.valueOf(maxSpeed)
+                        .multiply(BigDecimal.valueOf(time)
+                            .subtract(BigDecimal.valueOf(cruiseStartTime)))
+                        .doubleValue();
+
+                setPosition(BigDecimal.valueOf(cruiseStartPosition)
+                        .add(BigDecimal.valueOf(d))
+                        .doubleValue());
                 details();
-                time += rate;
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
                 setTime(time);
             }
 
-            System.out.println("Peak:");
             setTime(cruiseEndTime);
             setPosition(cruiseEndPosition);
             setSpeed(maxSpeed);
             setAcceleration(0);
-            details();
+            if (cruiseEndTime != cruiseStartTime) {
+                // does not print if no time (and therefore distance) has passed since the start of the cruising time
+                System.out.println("Peak:");
+                details();
+            }
+
+            // reset time
+            if (time == getTime()) {
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
+            }
+            setTime(time);
 
             // Slowing down
             setAcceleration(-a);
-            while (time > cruiseEndTime) {
-                d = maxSpeed * (time - cruiseEndTime) + 0.5 * acceleration * Math.pow((time - cruiseEndTime), 2);
-                v = maxSpeed + acceleration * (time - cruiseEndTime);
-                setPosition(cruiseEndPosition + d);
+            while (time >= cruiseEndTime) {
+                // d = maxSpeed * (time - cruiseEndTime) + 0.5 * acceleration * Math.pow((time - cruiseEndTime), 2);
+                d = BigDecimal.valueOf(maxSpeed)
+                        .multiply(BigDecimal.valueOf(time)
+                            .subtract(BigDecimal.valueOf(cruiseEndTime)))
+                        .add(BigDecimal.valueOf(0.5)
+                            .multiply(BigDecimal.valueOf(acceleration))
+                            .multiply((BigDecimal.valueOf(time).subtract(BigDecimal.valueOf(cruiseEndTime))).pow(2)))
+                        .doubleValue();
+
+                // v = maxSpeed + acceleration * (time - cruiseEndTime);
+                v = BigDecimal.valueOf(maxSpeed)
+                        .add(BigDecimal.valueOf(acceleration)
+                            .multiply(BigDecimal.valueOf(time).subtract(BigDecimal.valueOf(cruiseEndTime))))
+                        .doubleValue();
+
+                setPosition(BigDecimal.valueOf(cruiseEndPosition)
+                        .add(BigDecimal.valueOf(d))
+                        .doubleValue());
                 setSpeed(v);
                 details();
-                time += rate;
+                time = BigDecimal.valueOf(time)
+                        .add(BigDecimal.valueOf(rate))
+                        .doubleValue();
                 setTime(time);
 
                 // Elevator has arrived
-                if (time >= 2 * timeToReachMaxSpeed + totalCruiseTime) {
+                if (time >= BigDecimal.valueOf(2)
+                        .multiply(BigDecimal.valueOf(timeToReachMaxSpeed))
+                        .add(BigDecimal.valueOf(totalCruiseTime))
+                        .doubleValue()) {
                     System.out.println("Arrived.");
-                    setTime(2 * timeToReachMaxSpeed + totalCruiseTime);
+                    setTime(BigDecimal.valueOf(2)
+                            .multiply(BigDecimal.valueOf(timeToReachMaxSpeed))
+                            .add(BigDecimal.valueOf(totalCruiseTime))
+                            .doubleValue());
                     setPosition(finalPosition);
                     setSpeed(0);
                     setAcceleration(0);
@@ -296,10 +417,6 @@ public class Elevator {
                 }
             }
         }
-
-        // Reset maximum speeds and acceleration
-        setMaxSpeed(Math.abs(maxSpeed));
-        setMaxAcceleration(Math.abs(maxAcceleration));
     }
 
     public void travelToFloor(int floor) {
