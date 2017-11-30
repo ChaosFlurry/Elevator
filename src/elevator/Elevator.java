@@ -101,15 +101,6 @@ public class Elevator {
     }
 
     public void details() {
-        /*
-         * TODO all this stuff
-         * Travelling to floor
-         * ETA
-         * Queue?
-         * Direction?
-         * Status: Travelling to... Returning to... Unused, Out of Order etc
-         */
-
         // Print elevator details
         System.out.println("Time: " + getTime());
         System.out.println("Position: " + getPosition());
